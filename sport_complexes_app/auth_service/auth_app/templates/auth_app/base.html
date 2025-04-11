@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sport Complex{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Хедер -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <a href="{% url 'home' %}">Sport Complex</a>
+            </div>
+            <nav class="nav">
+                <ul>
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    {% if user.is_authenticated %}
+                        {% if user.user_role == 'client' %}
+                            <li><a href="/schedule/sessions/">Sessions</a></li>
+                            <li><a href="/facility/gyms/">Gyms</a></li>
+                        {% elif user.user_role == 'trainer' %}
+                            <li><a href="/schedule/trainer/schedule/">My Schedule</a></li>
+                            <li><a href="/facility/gyms/">Gyms</a></li>
+                        {% elif user.user_role == 'admin' %}
+                            <li><a href="/facility/gyms/">Manage Gyms</a></li>
+                            <li><a href="/schedule/sessions/">Manage Sessions</a></li>
+                            <li><a href="/admin/">Admin Panel</a></li>
+                        {% endif %}
+                        <li class="user-menu">
+                            <span>{{ user.username }} ({{ user.user_role|capfirst }})</span>
+                            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+                        </li>
+                    {% else %}
+                        <li><a href="{% url 'login' %}">Login</a></li>
+                        <li><a href="{% url 'register' %}">Register</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Основний контент -->
+    <main class="main">
+        <div class="container">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <p class="message {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Us</h3>
+                    <p>We provide top-notch sports facilities and training programs for everyone.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="/facility/gyms/">Gyms</a></li>
+                        <li><a href="/schedule/sessions/">Sessions</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: info@sportcomplex.com</p>
+                    <p>Phone: +1 234 567 890</p>
+                    <p>Address: 123 Fitness St, Kyiv</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Sport Complex. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
