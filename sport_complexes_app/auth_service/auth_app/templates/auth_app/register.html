@@ -1,13 +1,13 @@
 {% extends "auth_app/base.html" %}
 {% block title %} - Register{% endblock %}
 {% block content %}
-    <h1>Register</h1>
+    <h1>Регістрація</h1>
     <form method="post">
         {% csrf_token %}
-        <input type="text" name="username" placeholder="Username" value="{{ request.POST.username|default:'' }}" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="password" name="password_confirm" placeholder="Confirm Password" required>
-        <button type="submit">Register</button>
+        <input type="text" name="username" placeholder="Логін" value="{{ request.POST.username|default:'' }}" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <input type="password" name="password_confirm" placeholder="Підтвердіть пароль" required>
+        <button type="submit">Зареєструватися</button>
     </form>
-    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+    <p>Вже маєте акаунт? <a href="{% url 'login' %}">Авторизуйтесь тут</a></p>
 {% endblock %}

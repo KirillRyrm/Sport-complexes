@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sport Complex{% block title %}{% endblock %}</title>
+    <title>Мережа спортивних комплексів{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -13,30 +13,30 @@
     <header class="header">
         <div class="container">
             <div class="logo">
-                <a href="{% url 'home' %}">Sport Complex</a>
+                <a href="{% url 'home' %}">Мережа спортивних комплексів</a>
             </div>
             <nav class="nav">
                 <ul>
-                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="{% url 'home' %}">Головна</a></li>
                     {% if user.is_authenticated %}
                         {% if user.user_role == 'client' %}
-                            <li><a href="/schedule/sessions/">Sessions</a></li>
-                            <li><a href="/facility/gyms/">Gyms</a></li>
+                            <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
+                            <li><a href="/facility/gyms/">Спортивні зали</a></li>
                         {% elif user.user_role == 'trainer' %}
-                            <li><a href="/schedule/trainer/schedule/">My Schedule</a></li>
-                            <li><a href="/facility/gyms/">Gyms</a></li>
+                            <li><a href="/schedule/trainer/schedule/">Мій розклад</a></li>
+                            <li><a href="/facility/gyms/">Спортивні зали</a></li>
                         {% elif user.user_role == 'admin' %}
-                            <li><a href="/facility/gyms/">Manage Gyms</a></li>
-                            <li><a href="/schedule/sessions/">Manage Sessions</a></li>
-                            <li><a href="/admin/">Admin Panel</a></li>
+                            <li><a href="/facility/gyms/">Налаштування спорт залів</a></li>
+                            <li><a href="/schedule/sessions/">Налаштування тренувальних сесій</a></li>
+                            <li><a href="/admin/">Адмін панель</a></li>
                         {% endif %}
                         <li class="user-menu">
                             <span>{{ user.username }} ({{ user.user_role|capfirst }})</span>
-                            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+                            <a href="{% url 'logout' %}" class="logout-btn">Вихід</a>
                         </li>
                     {% else %}
-                        <li><a href="{% url 'login' %}">Login</a></li>
-                        <li><a href="{% url 'register' %}">Register</a></li>
+                        <li><a href="{% url 'login' %}">Авторизація</a></li>
+                        <li><a href="{% url 'register' %}">Регістрація</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -63,16 +63,16 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>About Us</h3>
-                    <p>We provide top-notch sports facilities and training programs for everyone.</p>
+                    <h3>Про нас</h3>
+                    <p>Ми пропонуємо першокласні спортивні споруди та тренувальні програми для всіх.</p>
                 </div>
                 <div class="footer-section">
-                    <h3>Quick Links</h3>
+                    <h3>Швидкі посилання</h3>
                     <ul>
-                        <li><a href="{% url 'home' %}">Home</a></li>
-                        <li><a href="/facility/gyms/">Gyms</a></li>
-                        <li><a href="/schedule/sessions/">Sessions</a></li>
-                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="{% url 'home' %}">Головна</a></li>
+                        <li><a href="/facility/gyms/">Зали</a></li>
+                        <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
+                        <li><a href="#contact">Контакти</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
