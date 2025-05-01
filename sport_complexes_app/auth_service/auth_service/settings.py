@@ -93,6 +93,10 @@ DATABASES = {
     }
 }
 
+AUTHENTICATION_BACKENDS = [
+    'auth_app.backends.UserCredentialsBackend',  # Шлях до твого бекенду
+    'django.contrib.auth.backends.ModelBackend',  # Стандартний бекенд Django (опціонально)
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

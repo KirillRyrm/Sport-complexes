@@ -8,6 +8,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from .models import UserCredentials
+from django.http import JsonResponse
 
 def register(request):
     if request.user.is_authenticated:
@@ -84,3 +85,88 @@ def home(request):
         'user_role': request.user.user_role,
         'username': request.user.username
     })
+
+
+
+# API-ендпоінти для мікросервісів
+def api_register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+
+        if not username or not password or not password_confirm:
+            return JsonResponse({'error': 'All fields are required'}, status=400)
+        if len(username) < 3:
+            return JsonResponse({'error': 'Username must be at least 3 characters long'}, status=400)
+        if len(password) < 6:
+            return JsonResponse({'error': 'Password must be at least 6 characters long'}, status=400)
+        if password != password_confirm:
+            return JsonResponse({'error': 'Passwords do not match'}, status=400)
+        if UserCredentials.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists'}, status=400)
+
+        user = UserCredentials(
+            username=username,
+            password=make_password(password),
+            user_role='client'
+        )
+        user.save()
+        try:
+            client_group = Group.objects.get(name='client')
+            user.groups.add(client_group)
+            user = authenticate(request, username=username, password=password)
+            if user:
+                login(request, user)
+            return JsonResponse({
+                'message': 'Registration successful',
+                'username': username,
+                'role': 'client',
+                'sessionid': request.session.session_key
+            }, status=201)
+        except Group.DoesNotExist:
+            user.delete()
+            return JsonResponse({'error': 'Client group not found'}, status=500)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+def api_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        if not username or not password:
+            return JsonResponse({'error': 'Username and password are required'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return JsonResponse({
+                'message': 'Login successful',
+                'username': user.username,
+                'role': user.user_role,
+                'sessionid': request.session.session_key
+            }, status=200)
+        return JsonResponse({'error': 'Invalid username or password'}, status=401)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@login_required
+def api_user_info(request):
+    if request.method == 'GET':
+        return JsonResponse({
+            'username': request.user.username,
+            'role': request.user.user_role,
+            'permissions': list(request.user.get_group_permissions())
+        }, status=200)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+def api_check_user(request):
+    if request.method == 'GET':
+        username = request.GET.get('username', '').strip()
+        if not username:
+            return JsonResponse({'error': 'Username is required'}, status=400)
+        exists = UserCredentials.objects.filter(username=username).exists()
+        return JsonResponse({
+            'username': username,
+            'exists': exists
+        }, status=200)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
