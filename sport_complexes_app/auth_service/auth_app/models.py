@@ -37,6 +37,55 @@ class UserCredentials(models.Model):
     def get_username(self):
         return self.username
 
+    def get_user_permissions(self, obj=None):
+        """
+        Повертає набір дозволів, призначених безпосередньо користувачу.
+        У нашому випадку прямих дозволів немає, тому повертаємо порожній набір.
+        """
+        return set()
+
+    def get_group_permissions(self, obj=None):
+        """
+        Повертає набір дозволів, отриманих через групи користувача.
+        """
+        permissions = set()
+        for group in self.groups.all():
+            for perm in group.permissions.select_related('content_type').all():
+                permissions.add(f"{perm.content_type.app_label}.{perm.codename}")
+        return permissions
+
+    def get_all_permissions(self, obj=None):
+        """
+        Повертає всі дозволи користувача (прямі + групові).
+        """
+        return self.get_group_permissions(obj)
+
+    def has_perm(self, perm, obj=None):
+        """
+        Перевіряє, чи має користувач вказаний дозвіл.
+        Наприклад, perm = 'auth_app.view_gyms'.
+        """
+        if not self.is_active:
+            return False
+        return perm in self.get_all_permissions(obj)
+
+    def has_perms(self, perm_list, obj=None):
+        """
+        Перевіряє, чи має користувач усі дозволи зі списку.
+        """
+        return all(self.has_perm(perm, obj) for perm in perm_list)
+
+    def has_module_perms(self, app_label):
+        """
+        Перевіряє, чи має користувач будь-які дозволи для вказаного додатку.
+        """
+        if not self.is_active:
+            return False
+        for perm in self.get_all_permissions():
+            if perm.startswith(f"{app_label}."):
+                return True
+        return False
+
 
 class UserCredentialsGroups(models.Model):
     user_credentials = models.ForeignKey(
