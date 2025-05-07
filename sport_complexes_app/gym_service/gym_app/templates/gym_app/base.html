@@ -13,30 +13,30 @@
     <header class="header">
         <div class="container">
             <div class="logo">
-                <a href="/home">Мережа спортивних комплексів</a>
+                <a href="{% url 'home' %}">Мережа спортивних комплексів</a>
             </div>
             <nav class="nav">
                 <ul>
-                    <li><a href="/home">Головна</a></li>
+                    <li><a href="{% url 'home' %}">Головна</a></li>
                     {% if user.is_authenticated %}
                         {% if user.user_role == 'client' %}
                             <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
-                            <li><a href="/gym/gyms/">Спортивні зали</a></li>
+                            <li><a href="/facility/gyms/">Спортивні зали</a></li>
                         {% elif user.user_role == 'trainer' %}
                             <li><a href="/schedule/trainer/schedule/">Мій розклад</a></li>
-                            <li><a href="/gym/gyms/">Спортивні зали</a></li>
+                            <li><a href="/facility/gyms/">Спортивні зали</a></li>
                         {% elif user.user_role == 'admin' %}
-                            <li><a href="/gym/gyms/">Налаштування спорт залів</a></li>
+                            <li><a href="/facility/gyms/">Налаштування спорт залів</a></li>
                             <li><a href="/schedule/sessions/">Налаштування тренувальних сесій</a></li>
                             <li><a href="/admin/">Адмін панель</a></li>
                         {% endif %}
-                        <li class="user-menu">
-                            <span>{{ user.username }} ({{ user.user_role|capfirst }})</span>
-                            <a href="/logout/" class="logout-btn">Вихід</a>
-                        </li>
-                    {% else %}
-                        <li><a href="/login/">Авторизація</a></li>
-                        <li><a href="/register/">Регістрація</a></li>
+{#                        <li class="user-menu">#}
+{#                            <span>{{ user.username }} ({{ user.user_role|capfirst }})</span>#}
+{#                            <a href="{% url 'logout' %}" class="logout-btn">Вихід</a>#}
+{#                        </li>#}
+{#                    {% else %}#}
+{#                        <li><a href="{% url 'login' %}">Авторизація</a></li>#}
+{#                        <li><a href="{% url 'register' %}">Регістрація</a></li>#}
                     {% endif %}
                 </ul>
             </nav>
@@ -69,7 +69,7 @@
                 <div class="footer-section">
                     <h3>Швидкі посилання</h3>
                     <ul>
-                        <li><a href="/">Головна</a></li>
+                        <li><a href="{% url 'home' %}">Головна</a></li>
                         <li><a href="/gym/gyms/">Зали</a></li>
                         <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
                         <li><a href="#contact">Контакти</a></li>
@@ -83,7 +83,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>© 2025 Sport Complex. All rights reserved.</p>
+                <p>&copy; 2025 Sport Complex. All rights reserved.</p>
             </div>
         </div>
     </footer>

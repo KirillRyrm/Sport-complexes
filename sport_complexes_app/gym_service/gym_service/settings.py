@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-*9zk&5@h=9acysb4l=$3#vbc%6@%l5g591m$*95ag9jxa-4vj*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #'gym_app.middleware.AuthServiceMiddleware',
 ]
 
 ROOT_URLCONF = 'gym_service.urls'
@@ -83,6 +84,9 @@ DATABASES = {
         'PASSWORD': 'rirmakkirill890',
         'HOST': 'localhost',
         'PORT': '5432',
+    },
+    'OPTIONS': {
+        'options': '-c search_path=gym_scheme, public'
     }
 }
 
@@ -105,7 +109,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# AUTHENTICATION_BACKENDS = [
+#     'gym_app.backends.AuthServiceBackend',
+# ]
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Установи True для HTTPS у продакшені
+LOGIN_URL = 'http://127.0.0.1:8000/login/'  # Перенаправлення на auth_service
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 

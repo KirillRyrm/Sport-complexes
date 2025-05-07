@@ -1,0 +1,17 @@
+{% extends 'gym_app/base.html' %}
+{% block content %}
+  <h1>Список спортивних залів</h1>
+  {% if gyms %}
+    <ul>
+      {% for gym in gyms %}
+        <li>
+          {{ gym.gym_name }} ({{ gym.address }})<br>
+          Телефон: {{ gym.phone }}<br>
+          Email: {{ gym.email }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Спортивних залів немає.</p>
+  {% endif %}
+{% endblock %}

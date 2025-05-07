@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'auth_app'
+    'auth_app',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -98,6 +99,16 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Стандартний бекенд Django (опціонально)
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -135,9 +146,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "auth_app/static"]
 
-LOGIN_URL = '/login/'  # Куди перенаправляти неавтентифікованих користувачів
+LOGIN_URL = 'login/'  # Куди перенаправляти неавтентифікованих користувачів
 LOGIN_REDIRECT_URL = '/'  # Куди перенаправляти після успішного логіну (домашня сторінка)
-LOGOUT_REDIRECT_URL = '/login/'  # Куди перенаправляти після логауту
+LOGOUT_REDIRECT_URL = 'login/'  # Куди перенаправляти після логауту
 
 
 # Default primary key field type
