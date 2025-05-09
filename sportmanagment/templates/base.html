@@ -13,7 +13,7 @@
     <header class="header">
         <div class="container">
             <div class="logo">
-                <a href="/home">Мережа спортивних комплексів</a>
+                <a href="/">Мережа спортивних комплексів</a>
             </div>
             <nav class="nav">
                 <ul>
@@ -21,14 +21,14 @@
                     {% if user.is_authenticated %}
                         {% if user.user_role == 'client' %}
                             <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
-                            <li><a href="/gym/gyms/">Спортивні зали</a></li>
+                            <li><a href="gym_list/">Спортивні зали</a></li>
                         {% elif user.user_role == 'trainer' %}
                             <li><a href="/schedule/trainer/schedule/">Мій розклад</a></li>
-                            <li><a href="/gym/gyms/">Спортивні зали</a></li>
+                            <li><a href="gym_list/">Спортивні зали</a></li>
                         {% elif user.user_role == 'admin' %}
-                            <li><a href="/gym/gyms/">Налаштування спорт залів</a></li>
+                            <li><a href="gym_list/">Налаштування спорт залів</a></li>
                             <li><a href="/schedule/sessions/">Налаштування тренувальних сесій</a></li>
-                            <li><a href="/admin/">Адмін панель</a></li>
+{#                            <li><a href="/admin/">Адмін панель</a></li>#}
                         {% endif %}
                         <li class="user-menu">
                             <span>{{ user.username }} ({{ user.user_role|capfirst }})</span>
@@ -69,8 +69,8 @@
                 <div class="footer-section">
                     <h3>Швидкі посилання</h3>
                     <ul>
-                        <li><a href="/auth_app/static">Головна</a></li>
-                        <li><a href="/gym/gyms/">Зали</a></li>
+                        <li><a href="/">Головна</a></li>
+                        <li><a href="gym_list/">Зали</a></li>
                         <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
                         <li><a href="#contact">Контакти</a></li>
                     </ul>

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',
     'auth_app',
+    'gym_app',
     'rest_framework',
 ]
 
@@ -138,7 +139,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "auth_app/static"]
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 LOGIN_URL = 'login/'  # Куди перенаправляти неавтентифікованих користувачів
 LOGIN_REDIRECT_URL = '/'  # Куди перенаправляти після успішного логіну (домашня сторінка)
