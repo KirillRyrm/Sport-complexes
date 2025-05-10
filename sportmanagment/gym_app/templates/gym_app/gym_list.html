@@ -93,6 +93,14 @@
         background: #b71c1c;
     }
 
+    .gym-card .btn-view {
+        background: #28a745;
+    }
+
+    .gym-card .btn-view:hover {
+        background: #218838;
+    }
+
     .add-btn {
         display: inline-block;
         padding: 0.75rem 1.5rem;
@@ -166,16 +174,18 @@
                         <p><i class="fas fa-phone"></i> {{ gym.phone }}</p>
                         <p><i class="fas fa-envelope"></i> {{ gym.email }}</p>
                     </div>
-                    {% if user.user_role == 'admin' %}
-                        <div class="actions">
-                            <a href="{% url 'edit_gym' gym.gym_id %}" class="btn btn-edit">Змінити інформацію</a>
-                            <form method="post" action="{% url 'delete_gym' gym.gym_id %}" onsubmit="return confirmDelete('{{ gym.gym_name|escapejs }}')">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-delete">Видалити</button>
-                            </form>
 
-                        </div>
-                    {% endif %}
+                    <div class="actions">
+                        <a href="{% url 'location_list' gym.gym_id %}" class="btn btn-view">Перегляд локацій</a>
+                        {% if user.user_role == 'admin' %}
+                        <a href="{% url 'edit_gym' gym.gym_id %}" class="btn btn-edit">Змінити інформацію</a>
+                        <form method="post" action="{% url 'delete_gym' gym.gym_id %}" onsubmit="return confirmDelete('{{ gym.gym_name|escapejs }}')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-delete">Видалити</button>
+                        </form>
+                        {% endif %}
+                    </div>
+
                 </div>
             {% endfor %}
         </div>
