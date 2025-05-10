@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'auth_app',
     'gym_app',
+    'training_app'
     'rest_framework',
 ]
 
