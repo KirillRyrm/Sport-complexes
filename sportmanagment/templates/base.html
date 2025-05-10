@@ -20,10 +20,10 @@
                     <li><a href="/">Головна</a></li>
                     {% if user.is_authenticated %}
                         {% if user.user_role == 'client' %}
-                            <li><a href="/schedule/sessions/">Тренувальні сесії</a></li>
+                            <li><a href="profile/">Особистий профіль</a></li>
                             <li><a href="gym_list/">Спортивні зали</a></li>
                         {% elif user.user_role == 'trainer' %}
-                            <li><a href="/schedule/trainer/schedule/">Мій розклад</a></li>
+                            <li><a href="profile/">Особистий профіль</a></li>
                             <li><a href="gym_list/">Спортивні зали</a></li>
                         {% elif user.user_role == 'admin' %}
                             <li><a href="gym_list/">Налаштування спорт залів</a></li>

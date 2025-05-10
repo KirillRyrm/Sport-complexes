@@ -44,7 +44,8 @@ class Trainers(models.Model):
     qualification = models.CharField(max_length=255, null=False)
     specialization = models.CharField(max_length=255, null=False)
     bio = models.TextField(null=True, blank=True)
-    photo = models.CharField(max_length=255, null=False)
+    photo = models.ImageField(upload_to='photos/')
+    #photo = models.CharField(max_length=255, null=False)
     client_qty_constraint = models.IntegerField(
         null=False,
         validators=[MinValueValidator(0, message='Client quantity cannot be negative')]
