@@ -20,7 +20,7 @@ class GymLocationListAPI(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, gym_id=None):
-        if not request.user.has_perm('auth_app.view_locations'):
+        if not request.user.has_perm('auth_app.view_gym_locations'):
             logger.warning(f"User {request.user.username} attempted to access GymLocationListAPI without permission")
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         if gym_id:
@@ -32,7 +32,7 @@ class GymLocationListAPI(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        if not request.user.has_perm('auth_app.add_locations'):
+        if not request.user.has_perm('auth_app.add_gym_locations'):
             logger.warning(f"User {request.user.username} attempted to create location without permission")
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         serializer = GymLocationSerializer(data=request.data)
@@ -51,7 +51,7 @@ class GymLocationDetailAPI(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, location_id):
-        if not request.user.has_perm('auth_app.view_locations'):
+        if not request.user.has_perm('auth_app.view_gym_locations'):
             logger.warning(f"User {request.user.username} attempted to access GymLocationDetailAPI without permission")
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         try:
@@ -64,7 +64,7 @@ class GymLocationDetailAPI(APIView):
             return Response({"error": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, location_id):
-        if not request.user.has_perm('auth_app.change_locations'):
+        if not request.user.has_perm('auth_app.change_gym_locations'):
             logger.warning(f"User {request.user.username} attempted to update location without permission")
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         try:
@@ -81,7 +81,7 @@ class GymLocationDetailAPI(APIView):
             return Response({"error": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, location_id):
-        if not request.user.has_perm('auth_app.delete_locations'):
+        if not request.user.has_perm('auth_app.delete_gym_locations'):
             logger.warning(f"User {request.user.username} attempted to delete location without permission")
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         try:

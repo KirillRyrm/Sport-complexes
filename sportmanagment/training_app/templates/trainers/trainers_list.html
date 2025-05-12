@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Список тренерів
+{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .table th, .table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .table th {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        .table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .trainer-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .action-btn {
+            padding: 8px 12px;
+            margin-right: 5px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .edit-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #e67e22;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>Список тренерів</h1>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <p class="message {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if trainers %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Фото</th>
+                    <th>Ім’я</th>
+                    <th>Прізвище</th>
+                    <th>Спеціалізація</th>
+                    <th>Кваліфікація</th>
+                    <th>Телефон</th>
+                    {% if is_admin %}
+                        <th>Дії</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for trainer in trainers %}
+                    <tr>
+                        <td><img src="{{ trainer.photo.url }}" alt="Фото тренера" class="trainer-photo"></td>
+                        <td>{{ trainer.first_name }}</td>
+                        <td>{{ trainer.last_name }}</td>
+                        <td>{{ trainer.specialization }}</td>
+                        <td>{{ trainer.qualification }}</td>
+                        <td>{{ trainer.phone }}</td>
+                        {% if is_admin %}
+                            <td>
+{#                                <a href="{% url 'edit_trainer' trainer.trainer_id %}" class="action-btn edit-btn">Редагувати</a>#}
+                                <form action="{% url 'delete_trainer' trainer.trainer_id %}" method="post" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="action-btn delete-btn" onclick="return confirm('Ви впевнені, що хочете видалити тренера {{ trainer.first_name }} {{ trainer.last_name }}?')">Видалити</button>
+                                </form>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Тренерів поки немає.</p>
+    {% endif %}
+{% endblock %}
