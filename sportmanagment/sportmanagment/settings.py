@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'auth_app',
     'gym_app',
     'training_app',
+    'client_app',
     'rest_framework',
 ]
 
@@ -134,7 +135,7 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

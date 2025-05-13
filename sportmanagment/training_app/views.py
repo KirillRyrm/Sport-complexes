@@ -8,6 +8,8 @@ from gym_app.models import Gym, GymLocation
 from django.db import IntegrityError, InternalError
 import logging
 import os
+from django.utils import timezone
+from datetime import datetime, timedelta, time
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from training_app.api.serializers import TrainingTypeSerializer, TrainersSerializer, TrainingSessionsSerializer
@@ -137,6 +139,21 @@ def training_sessions(request):
     try:
         trainer = Trainers.objects.get(user_credential=request.user)
         sessions = TrainingSessions.objects.filter(trainer=trainer).order_by('session_date', 'start_time')
+
+        current_time = timezone.now()
+
+        # Проходим по каждой сессии и проверяем время её завершения
+        for session in sessions:
+
+            #session_start = datetime.combine(session.session_date, session.start_time)
+            session_end = datetime.combine(session.session_date, session.end_time)
+
+
+
+            # Если сессия завершилась, но статус ещё не установлен как 'завершено'
+            if session_end < current_time and session.status != 'завершено':
+                session.status = 'завершено'
+                session.save(update_fields=['status'])
         return render(request, 'training_sessions/training_sessions_list.html', {
             'sessions': sessions,
             'trainer': trainer

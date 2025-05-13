@@ -53,7 +53,10 @@ def register(request):
                 client_group = Group.objects.get(name='client')
                 user.groups.add(client_group)
                 messages.success(request, 'Registration successful! Please log in.')
-                return redirect('login')
+                user = authenticate(request, username=username, password=password)
+                if user is not None:
+                    login(request, user)
+                    return redirect('create_profile')
             except Group.DoesNotExist:
                 messages.error(request, 'Error: Client group not found. Contact admin.')
                 user.delete()

@@ -78,21 +78,22 @@ class TrainingSessionForm(forms.ModelForm):
             raise forms.ValidationError('Дата сесії не може бути в минулому.')
         return session_date
 
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     start_time = cleaned_data.get('start_time')
-    #     end_time = cleaned_data.get('end_time')
-    #     gym = cleaned_data.get('gym')
-    #     location = cleaned_data.get('location')
-    #     if start_time and end_time and start_time >= end_time:
-    #         raise forms.ValidationError('Час початку повинен бути раніше часу закінчення.')
-    #     if gym and location and location.gym != gym:
-    #         raise forms.ValidationError('Обрана локація не належить вибраному залу.')
-    #     return cleaned_data
 
     def clean_end_time(self):
         start_time = self.cleaned_data['start_time']
         end_time = self.cleaned_data['end_time']
         if start_time and end_time and start_time >= end_time:
             raise forms.ValidationError('Час початку повинен бути раніше часу закінчення.')
+
+        session_date = self.cleaned_data['session_date']
+
+        if session_date and start_time:
+            # Составляем datetime для начала тренировки
+            session_start = datetime.combine(session_date, start_time)
+
+            # Получаем текущее время
+            now = datetime.now()
+
+            if session_start < now:
+                raise forms.ValidationError('Дата и время тренировки не могут быть в прошлом.')
         return end_time
