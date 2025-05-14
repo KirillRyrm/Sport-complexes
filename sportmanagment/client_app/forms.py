@@ -1,5 +1,6 @@
 from django import forms
-from .models import Client
+from .models import Client, ClientGoal, ClientFeedback
+from training_app.models import Trainers
 from django.core.validators import RegexValidator, MinValueValidator
 from gym_app.models import Subscription
 
@@ -43,3 +44,42 @@ class PurchaseSubscriptionForm(forms.Form):
         label='Абонемент',
         empty_label='Виберіть абонемент'
     )
+
+class ClientGoalForm(forms.ModelForm):
+    class Meta:
+        model = ClientGoal
+        fields = ['goal', 'description', 'is_achieved']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4}),
+            'is_achieved': forms.CheckboxInput(),
+        }
+        labels = {
+            'goal': 'Ціль',
+            'description': 'Опис',
+            'is_achieved': 'Досягнуто',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Для редактирования исключаем goal из обязательных полей
+        if self.instance and self.instance.pk:
+            self.fields['goal'].required = False
+            self.fields['goal'].widget = forms.HiddenInput()
+
+
+
+
+class ClientFeedbackForm(forms.ModelForm):
+    class Meta:
+        model = ClientFeedback
+        fields = ['title', 'description', 'rating']
+        widgets = {
+            'title': forms.TextInput(attrs={'maxlength': 100}),
+            'description': forms.Textarea(attrs={'rows': 4}),
+            'rating': forms.RadioSelect(),
+        }
+        labels = {
+            'title': 'Назва',
+            'description': 'Опис',
+            'rating': 'Рейтинг',
+        }

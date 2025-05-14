@@ -2,13 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
 from training_app.models import Trainers
-from .models import Client, ClientSubscription
-from .forms import ClientForm, BalanceTopUpForm, PurchaseSubscriptionForm
+from .models import Client, ClientSubscription, ClientGoal, ClientFeedback
+from .forms import ClientForm, BalanceTopUpForm, PurchaseSubscriptionForm, ClientGoalForm, ClientFeedbackForm
 from auth_app.models import UserCredentials
 from django.db import IntegrityError, transaction
 import logging
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
+from django.db.utils import DatabaseError
 
 
 logger = logging.getLogger(__name__)
@@ -350,3 +351,374 @@ def delete_subscription(request, user_subscription_id):
 
 
 ### client_goals ###
+@login_required
+@permission_required('auth_app.view_client_goals', raise_exception=True)
+def client_goals_list(request):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to access client goals list")
+            messages.error(request, 'Доступ до списку цілей дозволено лише клієнтам.')
+            return redirect('home')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            goals = ClientGoal.objects.filter(user=client).select_related('user', 'goal')
+            context = {
+                'goals': goals,
+            }
+            return render(request, 'client_goals/client_goals_list.html', context)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+    except Exception as e:
+        logger.error(f"Error viewing client goals list for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні списку цілей.')
+        return redirect('home')
+
+
+@login_required
+@permission_required('auth_app.add_client_goals', raise_exception=True)
+def add_client_goal(request):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to add client goal")
+            messages.error(request, 'Додавання цілей дозволено лише клієнтам.')
+            return redirect('home')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        if request.method == 'POST':
+            form = ClientGoalForm(request.POST)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        client_goal = form.save(commit=False)
+                        client_goal.user = client
+                        client_goal.assigned_at = datetime.now()
+                        client_goal.is_achieved = False
+                        client_goal.save()
+                        logger.info(f"User {request.user.username} added goal {client_goal.client_goal_id} for client {client.user_id}")
+                        messages.success(request, f'Ціль "{client_goal.goal.goal_name}" успішно додано!')
+                        return redirect('client_goals_list')
+                except IntegrityError:
+                    logger.warning(f"User {request.user.username} failed to add goal due to unique constraint")
+                    messages.error(request, 'Помилка: ця ціль уже додана на цю дату.')
+                except Exception as e:
+                    logger.error(f"Error adding goal for user {request.user.username}: {str(e)}")
+                    messages.error(request, 'Сталася помилка при додаванні цілі.')
+            else:
+                logger.warning(f"User {request.user.username} submitted invalid goal form")
+                messages.error(request, 'Помилка: перевірте правильність даних.')
+        else:
+            form = ClientGoalForm()
+        context = {
+            'form': form,
+        }
+        return render(request, 'client_goals/add_client_goal.html', context)
+    except Exception as e:
+        logger.error(f"Error accessing add client goal for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('home')
+
+
+@login_required
+@permission_required('auth_app.change_client_goals', raise_exception=True)
+def edit_client_goal(request, client_goal_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to edit client goal {client_goal_id}")
+            messages.error(request, 'Редагування цілей дозволено лише клієнтам.')
+            return redirect('client_goals_list')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            goal = ClientGoal.objects.get(client_goal_id=client_goal_id, user=client)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        except ClientGoal.DoesNotExist:
+            logger.warning(f"Goal {client_goal_id} not found or not owned by user {request.user.username}")
+            messages.error(request, 'Ціль не знайдено.')
+            return redirect('client_goals_list')
+        if request.method == 'POST':
+            form = ClientGoalForm(request.POST, instance=goal)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        client_goal = form.save()
+                        logger.info(f"User {request.user.username} updated goal {client_goal_id} for client {client.user_id}")
+                        messages.success(request, f'Ціль "{client_goal.goal.goal_name}" успішно оновлено!')
+                        return redirect('client_goals_list')
+                except IntegrityError:
+                    logger.warning(f"User {request.user.username} failed to update goal due to unique constraint")
+                    messages.error(request, 'Помилка: ціль із такими даними вже існує.')
+                except Exception as e:
+                    logger.error(f"Error updating goal {client_goal_id} for user {request.user.username}: {str(e)}")
+                    messages.error(request, 'Сталася помилка при оновленні цілі.')
+            else:
+                logger.warning(f"User {request.user.username} submitted invalid goal form: {form.errors}")
+                messages.error(request, 'Помилка: перевірте правильність даних.')
+        else:
+            form = ClientGoalForm(instance=goal)
+        context = {
+            'form': form,
+            'goal': goal,
+        }
+        return render(request, 'client_goals/edit_client_goal.html', context)
+    except Exception as e:
+        logger.error(f"Error accessing edit client goal {client_goal_id} for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('client_goals_list')
+
+@login_required
+@permission_required('auth_app.delete_client_goals', raise_exception=True)
+def delete_client_goal(request, client_goal_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to delete client goal {client_goal_id}")
+            messages.error(request, 'Видалення цілей дозволено лише клієнтам.')
+            return redirect('client_goals_list')
+        if request.method == 'POST':
+            try:
+                client = Client.objects.get(user_credential=request.user)
+                goal = ClientGoal.objects.get(client_goal_id=client_goal_id, user=client)
+                goal_name = goal.goal.goal_name
+                goal.delete()
+                logger.info(f"User {request.user.username} deleted goal {client_goal_id} for client {client.user_id}")
+                messages.success(request, f'Ціль "{goal_name}" успішно видалено.')
+                return redirect('client_goals_list')
+            except Client.DoesNotExist:
+                logger.warning(f"User {request.user.username} has no client profile")
+                messages.error(request, 'Профіль клієнта не знайдено.')
+                return redirect('client_goals_list')
+            except ClientGoal.DoesNotExist:
+                logger.warning(f"Goal {client_goal_id} not found or not owned by user {request.user.username}")
+                messages.error(request, 'Ціль не знайдено.')
+                return redirect('client_goals_list')
+        else:
+            logger.warning(f"Invalid request method for delete_client_goal by user {request.user.username}")
+            messages.error(request, 'Невалідний запит для видалення.')
+            return redirect('client_goals_list')
+    except Exception as e:
+        logger.error(f"Error deleting client goal {client_goal_id} by user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при видаленні цілі.')
+        return redirect('client_goals_list')
+
+
+### client_feedbacks ###
+@login_required
+@permission_required('auth_app.view_client_feedbacks', raise_exception=True)
+def client_feedbacks_list(request):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to access client feedbacks list")
+            messages.error(request, 'Доступ до списку відгуків дозволено лише клієнтам.')
+            return redirect('home')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            feedbacks = ClientFeedback.objects.filter(user=client).select_related('user', 'trainer')
+            logger.info(f"Client {request.user.username} viewed their feedbacks list")
+            context = {
+                'feedbacks': feedbacks,
+            }
+            return render(request, 'client_feedbacks/client_feedbacks_list.html', context)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+    except Exception as e:
+        logger.error(f"Error viewing client feedbacks list for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні списку відгуків.')
+        return redirect('home')
+
+
+@login_required
+@permission_required('auth_app.add_client_feedbacks', raise_exception=True)
+def add_client_feedback(request):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to add client feedback")
+            messages.error(request, 'Додавання відгуків дозволено лише клієнтам.')
+            return redirect('client_feedbacks_list')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            if not client.trainer:
+                logger.warning(f"User {request.user.username} has no assigned trainer")
+                messages.error(request, 'У вас немає призначеного тренера для залишення відгуку.')
+                return redirect('client_feedbacks_list')
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        if request.method == 'POST':
+            form = ClientFeedbackForm(request.POST)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        feedback = form.save(commit=False)
+                        feedback.user = client
+                        feedback.trainer = client.trainer
+                        feedback.date = datetime.now()
+                        feedback.clean()
+                        feedback.save()
+                        logger.info(f"User {request.user.username} added feedback {feedback.feedback_id} for trainer {client.trainer.user_credential.username}")
+                        messages.success(request, f'Відгук "{feedback.title}" успішно додано!')
+                        return redirect('client_feedbacks_list')
+                except IntegrityError:
+                    logger.warning(f"User {request.user.username} failed to add feedback due to unique constraint")
+                    messages.error(request, 'Помилка: відгук для цього тренера на цю дату вже існує.')
+                except ValidationError as e:
+                    logger.warning(f"Validation error for user {request.user.username} adding feedback: {str(e)}")
+                    messages.error(request, f'Помилка: {str(e)}')
+                except Exception as e:
+                    logger.error(f"Error adding feedback for user {request.user.username}: {str(e)}")
+                    messages.error(request, 'Сталася помилка при додаванні відгуку.')
+            else:
+                logger.warning(f"User {request.user.username} submitted invalid feedback form: {form.errors}")
+                messages.error(request, 'Помилка: перевірте правильність даних.')
+        else:
+            form = ClientFeedbackForm()
+        context = {
+            'form': form,
+            'client': client,
+        }
+        return render(request, 'client_feedbacks/add_client_feedback.html', context)
+    except Exception as e:
+        logger.error(f"Error accessing add client feedback for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('client_feedbacks_list')
+
+
+@login_required
+@permission_required('auth_app.change_client_feedbacks', raise_exception=True)
+def edit_client_feedback(request, feedback_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} attempted to edit client feedback {feedback_id}")
+            messages.error(request, 'Редагування відгуків дозволено лише клієнтам.')
+            return redirect('client_feedbacks_list')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            feedback = ClientFeedback.objects.get(feedback_id=feedback_id, user=client)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        except ClientFeedback.DoesNotExist:
+            logger.warning(f"Feedback {feedback_id} not found or not owned by user {request.user.username}")
+            messages.error(request, 'Відгук не знайдено.')
+            return redirect('client_feedbacks_list')
+        if request.method == 'POST':
+            form = ClientFeedbackForm(request.POST, instance=feedback)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        feedback = form.save(commit=False)
+                        feedback.clean()
+                        feedback.save()
+                        logger.info(f"User {request.user.username} updated feedback {feedback_id} for trainer {feedback.trainer.user_credential.username}")
+                        messages.success(request, f'Відгук "{feedback.title}" успішно оновлено!')
+                        return redirect('client_feedbacks_list')
+                except IntegrityError:
+                    logger.warning(f"User {request.user.username} failed to update feedback due to unique constraint")
+                    messages.error(request, 'Помилка: відгук із такими даними вже існує.')
+                except ValidationError as e:
+                    logger.warning(f"Validation error for user {request.user.username} updating feedback: {str(e)}")
+                    messages.error(request, f'Помилка: {str(e)}')
+                except Exception as e:
+                    logger.error(f"Error updating feedback {feedback_id} for user {request.user.username}: {str(e)}")
+                    messages.error(request, 'Сталася помилка при оновленні відгуку.')
+            else:
+                logger.warning(f"User {request.user.username} submitted invalid feedback form: {form.errors}")
+                messages.error(request, 'Помилка: перевірте правильність даних.')
+        else:
+            form = ClientFeedbackForm(instance=feedback)
+        context = {
+            'form': form,
+            'feedback': feedback,
+        }
+        return render(request, 'client_feedbacks/edit_client_feedback.html', context)
+    except Exception as e:
+        logger.error(f"Error accessing edit client feedback {feedback_id} for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('client_feedbacks_list')
+
+@login_required
+@permission_required('auth_app.delete_client_feedbacks', raise_exception=True)
+def delete_client_feedback(request, feedback_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} attempted to delete client feedback {feedback_id}")
+            messages.error(request, 'Видалення відгуків дозволено лише клієнтам.')
+            return redirect('client_feedbacks_list')
+        if request.method == 'POST':
+            try:
+                client = Client.objects.get(user_credential=request.user)
+                feedback = ClientFeedback.objects.get(feedback_id=feedback_id, user=client)
+                feedback_title = feedback.title
+                feedback.delete()
+                messages.success(request, f'Відгук "{feedback_title}" успішно видалено.')
+                return redirect('client_feedbacks_list')
+            except Client.DoesNotExist:
+                messages.error(request, 'Профіль клієнта не знайдено.')
+                return redirect('client_feedbacks_list')
+            except ClientFeedback.DoesNotExist:
+                messages.error(request, 'Відгук не знайдено.')
+                return redirect('client_feedbacks_list')
+        else:
+            messages.error(request, 'Невалідний запит для видалення.')
+            return redirect('client_feedbacks_list')
+    except Exception as e:
+        messages.error(request, 'Сталася помилка при видаленні відгуку.')
+        return redirect('client_feedbacks_list')
+
+
+
+@login_required
+@permission_required('auth_app.view_trainers', raise_exception=True)
+def assign_trainer(request, trainer_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to assign trainer {trainer_id}")
+            messages.error(request, 'Призначення тренера дозволено лише клієнтам.')
+            return redirect('trainers_list')
+        if request.method != 'POST':
+            logger.warning(f"Invalid request method for assign_trainer by user {request.user.username}")
+            messages.error(request, 'Невалідний запит.')
+            return redirect('trainers_list')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            trainer = Trainers.objects.get(trainer_id=trainer_id)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        except Trainers.DoesNotExist:
+            logger.warning(f"Trainer {trainer_id} not found for user {request.user.username}")
+            messages.error(request, 'Тренера не знайдено.')
+            return redirect('trainers_list')
+        try:
+            with transaction.atomic():
+                client.trainer = trainer
+                client.save()
+                logger.info(f"User {request.user.username} assigned trainer {trainer.user_credential.username} (trainer_id: {trainer_id})")
+                messages.success(request, f'Ви успішно записалися до тренера {trainer.first_name} {trainer.last_name}!')
+                return redirect('trainers_list')
+        except DatabaseError as e:
+            logger.warning(f"User {request.user.username} failed to assign trainer {trainer_id} due to database error: {str(e)}")
+            if 'Неможливо призначити тренера без активного абонемента' in str(e):
+                messages.error(request, 'Помилка: для призначення тренера потрібен активний абонемент.')
+            else:
+                messages.error(request, 'Сталася помилка при призначенні тренера.')
+            return redirect('trainers_list')
+        except Exception as e:
+            logger.error(f"Error assigning trainer {trainer_id} for user {request.user.username}: {str(e)}")
+            messages.error(request, 'Сталася помилка при призначенні тренера.')
+            return redirect('trainers_list')
+    except Exception as e:
+        logger.error(f"Error accessing assign_trainer for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('trainers_list')

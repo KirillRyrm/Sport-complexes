@@ -202,12 +202,20 @@ class ClientGoal(models.Model):
 
 
 class ClientFeedback(models.Model):
+    RATING_CHOICES = [
+        (1, '1'),
+        (2, '2'),
+        (3, '3'),
+        (4, '4'),
+        (5, '5'),
+    ]
     feedback_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100, null=False)
     description = models.TextField(null=False)
     date = models.DateTimeField(null=False, default=datetime.now)
     rating = models.SmallIntegerField(
         null=False,
+        choices=RATING_CHOICES,
         validators=[
             MinValueValidator(1, message='Рейтинг повинен бути від 1 до 5.'),
             MaxValueValidator(5, message='Рейтинг повинен бути від 1 до 5.')
