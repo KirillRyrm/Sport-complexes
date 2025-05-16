@@ -51,7 +51,12 @@
                 <div class="resource-card">
                     <h3>Відгуки клієнтів</h3>
                     <p>Перегляд і модерація відгуків.</p>
-                    <a href="feedbacks/" class="btn">Перейти до відгуків</a>
+                    <a href="client_feedbacks/" class="btn">Перейти до відгуків</a>
+                </div>
+                <div class="resource-card">
+                    <h3>Аналітика</h3>
+                    <p>Перегляд аналітичних даних.</p>
+                    <a href="analytics/" class="btn">Перейти до аналітики</a>
                 </div>
             {% elif user_role == 'trainer' %}
                 <div class="resource-card">
@@ -70,20 +75,20 @@
                     <a href="clients/" class="btn">Перейти до клієнтів</a>
                 </div>
                 <div class="resource-card">
-                    <h3>Прогрес клієнтів</h3>
+                    <h3>Прогрес моїх клієнтів</h3>
                     <p>Запис і перегляд прогресу клієнтів.</p>
-                    <a href="progress/" class="btn">Перейти до прогресу</a>
+                    <a href="my_client_progress/" class="btn">Перейти до прогресу</a>
                 </div>
                 <div class="resource-card">
                     <h3>Відгуки клієнтів</h3>
                     <p>Перегляд відгуків від клієнтів.</p>
-                    <a href="/feedbacks/" class="btn">Перейти до відгуків</a>
+                    <a href="{% url 'trainer_feedbacks' %}" class="btn">Перейти до відгуків</a>
                 </div>
             {% elif user_role == 'client' %}
                 <div class="resource-card">
                     <h3>Тренувальні сесії</h3>
                     <p>Реєстрація на тренування.</p>
-                    <a href="/schedule/sessions/" class="btn">Перейти до сесій</a>
+                    <a href="client_trainings/" class="btn">Перейти до сесій</a>
                 </div>
                 <div class="resource-card">
                     <h3>Спортивні зали</h3>

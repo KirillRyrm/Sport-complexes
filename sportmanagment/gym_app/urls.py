@@ -47,4 +47,6 @@ urlpatterns = [
    path('goals/delete/<int:goal_id>/', views.delete_goal, name='delete_goal'),
    path('api/goals/', goal_api.GoalListAPI.as_view(), name='goal_list_api'),
    path('api/goals/<int:goal_id>/', goal_api.GoalDetailAPI.as_view(), name='goal_detail_api'),
+
+
 ]

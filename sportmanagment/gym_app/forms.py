@@ -1,3 +1,4 @@
+
 from .models import Gym, Equipment, GymLocation, GymEquipment, Subscription, Goal
 from django import forms
 
@@ -95,3 +96,6 @@ class GoalForm(forms.ModelForm):
         if len(goal_name) < 3:
             raise forms.ValidationError('Назва цілі повинна містити щонайменше 3 символи.')
         return goal_name
+
+
+

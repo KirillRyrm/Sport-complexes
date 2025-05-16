@@ -24,5 +24,13 @@ urlpatterns = [
     path('client_feedbacks/delete/<int:feedback_id>/', views.delete_client_feedback, name='delete_client_feedback'),
 
     path('assign_trainer/<int:trainer_id>/', views.assign_trainer, name='assign_trainer'),
+    path('trainer_feedbacks/', views.trainer_feedbacks, name='trainer_feedbacks'),
+
+    path('client_trainings/', views.client_training_registrations, name='client_trainings'),
+    path('register_for_session/<int:session_id>/', views.register_for_session, name='register_for_session'),
+    path('cancel_registration/<int:session_id>/', views.cancel_registration, name='cancel_registration'),
+
+    path('training_sessions/<int:session_id>/progress/add/<int:client_id>/', views.add_client_progress, name='add_client_progress'),
+    path('progress/', views.client_progress, name='client_progress'),
 
 ]

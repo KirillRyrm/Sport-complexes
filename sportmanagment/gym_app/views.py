@@ -355,3 +355,6 @@ def delete_goal(request, goal_id):
         messages.success(request, f'Ціль "{goal_name}" успішно видалено.')
         return redirect('goal_list')
     return redirect('goal_list')
+
+
+

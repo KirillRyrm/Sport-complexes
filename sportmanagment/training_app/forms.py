@@ -97,3 +97,54 @@ class TrainingSessionForm(forms.ModelForm):
             if session_start < now:
                 raise forms.ValidationError('Дата и время тренировки не могут быть в прошлом.')
         return end_time
+
+
+class ClientAttendanceForm(forms.Form):
+    trainer = forms.ModelChoiceField(
+        queryset=Trainers.objects.all(),
+        required=False,
+        label='Тренер',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    training_type = forms.ModelChoiceField(
+        queryset=TrainingType.objects.all(),
+        required=False,
+        label='Тип тренування',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    start_date = forms.DateField(
+        required=False,
+        label='Дата початку',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='Дата закінчення',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+
+
+class TrainingTypeRankingForm(forms.Form):
+    start_date = forms.DateField(
+        required=False,
+        label='Дата початку',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='Дата закінчення',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+
+
+class LocationRankingForm(forms.Form):
+    start_date = forms.DateField(
+        required=False,
+        label='Дата початку',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='Дата закінчення',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )

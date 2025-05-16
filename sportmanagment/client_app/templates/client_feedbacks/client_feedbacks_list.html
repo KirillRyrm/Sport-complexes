@@ -135,7 +135,9 @@
 {% block content %}
 <div class="container">
     <h1>Список відгуків</h1>
+    {% if request.user.user_role == 'client' %}
     <a href="{% url 'add_client_feedback' %}" class="add-btn">Додати відгук</a>
+    {% endif %}
 {#    {% if messages %}#}
 {#        {% for message in messages %}#}
 {#            {% if message.tags == 'success' %}#}
@@ -168,8 +170,12 @@
                         <td>{{ feedback.rating }}</td>
                         <td>{{ feedback.trainer.first_name }} {{ feedback.trainer.last_name }}</td>
                         <td>
+                            {% if request.user.user_role == 'client' %}
                             <a href="{% url 'edit_client_feedback' feedback.feedback_id %}" class="edit-btn">Виправити</a>
+                            {% endif %}
+                            {% if request.user.user_role == 'admin' or request.user.user_role == 'client' %}
                             <button class="delete-btn" onclick="openModal({{ feedback.feedback_id }}, '{{ feedback.title|escapejs }}')">Видалити</button>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

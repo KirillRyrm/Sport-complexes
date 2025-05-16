@@ -73,6 +73,9 @@
         border-radius: 5px;
         text-align: center;
     }
+    .rating-cell {
+        text-align: center;
+    }
 </style>
 {% endblock %}
 
@@ -95,6 +98,7 @@
                 <th>Спеціалізація</th>
                 <th>Кваліфікація</th>
                 <th>Телефон</th>
+                <th>Середній рейтинг (1-5)</th>
                 <th>Дії</th>
             </tr>
         </thead>
@@ -107,6 +111,13 @@
                     <td>{{ trainer.specialization }}</td>
                     <td>{{ trainer.qualification }}</td>
                     <td>{{ trainer.phone }}</td>
+                    <td class="rating-cell">
+                        {% if trainer.average_rating %}
+                            {{ trainer.average_rating|floatformat:2 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                     <td>
                         {% if is_admin %}
                             {# <a href="{% url 'edit_trainer' trainer.trainer_id %}" class="action-btn edit-btn">Редагувати</a> #}

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Client, ClientGoal, ClientFeedback
+from .models import Client, ClientGoal, ClientFeedback, ClientProgress
 from training_app.models import Trainers
 from django.core.validators import RegexValidator, MinValueValidator
 from gym_app.models import Subscription
@@ -82,4 +82,18 @@ class ClientFeedbackForm(forms.ModelForm):
             'title': 'Назва',
             'description': 'Опис',
             'rating': 'Рейтинг',
+        }
+
+
+class ClientProgressForm(forms.ModelForm):
+    class Meta:
+        model = ClientProgress
+        fields = ['result', 'feedback']
+        widgets = {
+            'result': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'feedback': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+        labels = {
+            'result': 'Результат',
+            'feedback': 'Відгук',
         }

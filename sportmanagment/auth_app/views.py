@@ -52,7 +52,7 @@ def register(request):
             try:
                 client_group = Group.objects.get(name='client')
                 user.groups.add(client_group)
-                messages.success(request, 'Registration successful! Please log in.')
+                messages.success(request, 'Регістрація успішна!')
                 user = authenticate(request, username=username, password=password)
                 if user is not None:
                     login(request, user)
@@ -64,7 +64,7 @@ def register(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        messages.info(request, 'You are already logged in')
+        messages.info(request, 'Ви вже війшли в систему.')
         return redirect('home')
 
     if request.method == 'POST':
@@ -78,7 +78,7 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                messages.success(request, f'Welcome back, {user.username}!')
+                messages.success(request, f'Ласкаво просимо, {user.username}!')
                 return redirect('home')
             else:
                 messages.error(request, 'Invalid username or password')
@@ -87,7 +87,7 @@ def login_view(request):
 @login_required
 def logout_view(request):
     logout(request)
-    messages.success(request, 'You have been logged out')
+    messages.success(request, 'Ви вийшли з системи.')
     return redirect('login')
 
 @login_required

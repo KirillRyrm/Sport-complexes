@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib import messages
-from training_app.models import Trainers
-from .models import Client, ClientSubscription, ClientGoal, ClientFeedback
-from .forms import ClientForm, BalanceTopUpForm, PurchaseSubscriptionForm, ClientGoalForm, ClientFeedbackForm
+from training_app.models import Trainers, TrainingSessions
+from .models import Client, ClientSubscription, ClientGoal, ClientFeedback, ClientProgress, ClientTrainingRegistration
+from .forms import ClientForm, BalanceTopUpForm, PurchaseSubscriptionForm, ClientGoalForm, ClientFeedbackForm, \
+    ClientProgressForm
 from auth_app.models import UserCredentials
 from django.db import IntegrityError, transaction
+from django.db.models import Exists, OuterRef
 import logging
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
@@ -513,10 +515,15 @@ def delete_client_goal(request, client_goal_id):
 @permission_required('auth_app.view_client_feedbacks', raise_exception=True)
 def client_feedbacks_list(request):
     try:
-        if request.user.user_role != 'client':
-            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to access client feedbacks list")
-            messages.error(request, 'Доступ до списку відгуків дозволено лише клієнтам.')
-            return redirect('home')
+        if request.user.user_role == 'admin':
+            feedbacks = ClientFeedback.objects.all()
+            return render(request, 'client_feedbacks/client_feedbacks_list.html', {'feedbacks': feedbacks})
+        # if request.user.user_role == 'trainer':
+        #     trainer = Trainers.objects.get(user_credential=request.user)
+        #     feedbacks = ClientFeedback.objects.filter(trainer=trainer).select_related('user', 'trainer')
+        #     #logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to access client feedbacks list")
+        #     messages.error(request, 'Доступ до списку відгуків дозволено лише клієнтам.')
+        #     return redirect('home')
         try:
             client = Client.objects.get(user_credential=request.user)
             feedbacks = ClientFeedback.objects.filter(user=client).select_related('user', 'trainer')
@@ -650,9 +657,13 @@ def edit_client_feedback(request, feedback_id):
 @permission_required('auth_app.delete_client_feedbacks', raise_exception=True)
 def delete_client_feedback(request, feedback_id):
     try:
-        if request.user.user_role != 'client':
-            logger.warning(f"User {request.user.username} attempted to delete client feedback {feedback_id}")
-            messages.error(request, 'Видалення відгуків дозволено лише клієнтам.')
+        if request.user.user_role == 'admin':
+            feedback = ClientFeedback.objects.get(feedback_id=feedback_id)
+            feedback_title = feedback.title
+            feedback.delete()
+            messages.success(request, f'Відгук "{feedback_title}" успішно видалено.')
+            #logger.warning(f"User {request.user.username} attempted to delete client feedback {feedback_id}")
+            #messages.error(request, 'Видалення відгуків дозволено лише клієнтам або адміністраторам')
             return redirect('client_feedbacks_list')
         if request.method == 'POST':
             try:
@@ -713,7 +724,7 @@ def assign_trainer(request, trainer_id):
                 messages.error(request, 'Помилка: для призначення тренера потрібен активний абонемент.')
             else:
                 messages.error(request, 'Сталася помилка при призначенні тренера.')
-            return redirect('trainers_list')
+            return redirect('client_subscriptions_list')
         except Exception as e:
             logger.error(f"Error assigning trainer {trainer_id} for user {request.user.username}: {str(e)}")
             messages.error(request, 'Сталася помилка при призначенні тренера.')
@@ -722,3 +733,264 @@ def assign_trainer(request, trainer_id):
         logger.error(f"Error accessing assign_trainer for user {request.user.username}: {str(e)}")
         messages.error(request, 'Сталася помилка при завантаженні сторінки.')
         return redirect('trainers_list')
+
+
+@login_required
+@permission_required('auth_app.view_client_feedbacks', raise_exception=True)
+def trainer_feedbacks(request):
+    try:
+        if request.user.user_role != 'trainer':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to view trainer feedbacks")
+            messages.error(request, 'Перегляд відгуків дозволено лише тренерам.')
+            return redirect('home')
+        try:
+            trainer = Trainers.objects.get(user_credential=request.user)
+        except Trainers.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no trainer profile")
+            messages.error(request, 'Профіль тренера не знайдено.')
+            return redirect('home')
+        feedbacks = ClientFeedback.objects.filter(trainer=trainer).order_by('-date')
+        logger.info(f"User {request.user.username} viewed their feedbacks (count: {feedbacks.count()})")
+        return render(request, 'client_feedbacks/trainer_feedbacks.html', {
+            'feedbacks': feedbacks,
+            'trainer': trainer,
+        })
+    except Exception as e:
+        logger.error(f"Error accessing trainer feedbacks for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні відгуків.')
+        return redirect('home')
+
+
+### client_training_registrations ###
+
+@login_required
+@permission_required('auth_app.view_client_training_registrations', raise_exception=True)
+def client_training_registrations(request):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to view client trainings")
+            messages.error(request, 'Перегляд тренувальних сесій дозволено лише клієнтам.')
+            return redirect('home')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            if client.subscriptions.count() == 0:
+                messages.error(request, 'Необхідно мати активний абонемент для перегляду тренувальних сесій.')
+                return redirect('client_subscriptions_list')
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        if not client.trainer:
+            logger.info(f"User {request.user.username} has no assigned trainer")
+            messages.error(request, 'У вас немає призначеного тренера.')
+            sessions = []
+        else:
+            # Аннотируем сессии флагом is_registered
+            sessions = TrainingSessions.objects.filter(
+                trainer=client.trainer,
+                status='заплановано'
+            ).annotate(
+                is_registered=Exists(
+                    ClientTrainingRegistration.objects.filter(
+                        session=OuterRef('pk'),
+                        user=client
+                    )
+                )
+            ).order_by('session_date', 'start_time')
+            logger.info(f"User {request.user.username} viewed training sessions (count: {sessions.count()})")
+        return render(request, 'client_trainings/client_trainings.html', {
+            'sessions': sessions,
+            'client': client,
+        })
+    except Exception as e:
+        logger.error(f"Error accessing client trainings for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('home')
+
+
+@login_required
+@permission_required('auth_app.add_client_training_registrations', raise_exception=True)
+def register_for_session(request, session_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to register for session {session_id}")
+            messages.error(request, 'Реєстрація на тренування дозволена лише клієнтам.')
+            return redirect('client_trainings')
+        if request.method != 'POST':
+            logger.warning(f"Invalid request method for register_for_session by user {request.user.username}")
+            messages.error(request, 'Невалідний запит.')
+            return redirect('client_trainings')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            session = TrainingSessions.objects.get(session_id=session_id, status='заплановано')
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        except TrainingSessions.DoesNotExist:
+            logger.warning(f"Session {session_id} not found or not planned for user {request.user.username}")
+            messages.error(request, 'Сесію не знайдено або вона не запланована.')
+            return redirect('client_trainings')
+        if session.trainer != client.trainer:
+            logger.warning(f"User {request.user.username} attempted to register for session {session_id} not belonging to their trainer")
+            messages.error(request, 'Ви можете реєструватися лише на сесії вашого тренера.')
+            return redirect('client_trainings')
+        current_participants = ClientTrainingRegistration.objects.filter(session=session).count()
+        if current_participants >= session.max_participants:
+            logger.warning(f"User {request.user.username} failed to register for session {session_id}: session is full")
+            messages.error(request, 'Сесія заповнена. Оберіть іншу.')
+            return redirect('client_trainings')
+        try:
+            with transaction.atomic():
+                registration = ClientTrainingRegistration.objects.create(
+                    user=client,
+                    session=session
+                )
+                logger.info(f"User {request.user.username} registered for session {session_id}")
+                messages.success(request, f'Ви успішно зареєструвалися на сесію {session.session_date.strftime("%d.%m.%Y")} {session.start_time.strftime("%H:%M")}!')
+                return redirect('client_trainings')
+        except IntegrityError:
+            logger.warning(f"User {request.user.username} already registered for session {session_id}")
+            messages.error(request, 'Ви вже зареєстровані на цю сесію.')
+            return redirect('client_trainings')
+        except Exception as e:
+            logger.error(f"Error registering user {request.user.username} for session {session_id}: {str(e)}")
+            messages.error(request, 'Сталася помилка при реєстрації.')
+            return redirect('client_trainings')
+    except Exception as e:
+        logger.error(f"Error accessing register_for_session for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('client_trainings')
+
+
+@login_required
+@permission_required('auth_app.delete_client_training_registrations', raise_exception=True)
+def cancel_registration(request, session_id):
+    try:
+        if request.user.user_role != 'client':
+            logger.warning(f"User {request.user.username} (role: {request.user.user_role}) attempted to cancel registration for session {session_id}")
+            messages.error(request, 'Скасування реєстрації дозволено лише клієнтам.')
+            return redirect('client_trainings')
+        if request.method != 'POST':
+            logger.warning(f"Invalid request method for cancel_registration by user {request.user.username}")
+            messages.error(request, 'Невалідний запит.')
+            return redirect('client_trainings')
+        try:
+            client = Client.objects.get(user_credential=request.user)
+            session = TrainingSessions.objects.get(session_id=session_id, status='заплановано')
+            registration = ClientTrainingRegistration.objects.get(user=client, session=session)
+        except Client.DoesNotExist:
+            logger.warning(f"User {request.user.username} has no client profile")
+            messages.error(request, 'Профіль клієнта не знайдено. Створіть профіль.')
+            return redirect('create_profile')
+        except TrainingSessions.DoesNotExist:
+            logger.warning(f"Session {session_id} not found or not planned for user {request.user.username}")
+            messages.error(request, 'Сесію не знайдено або вона не запланована.')
+            return redirect('client_trainings')
+        except ClientTrainingRegistration.DoesNotExist:
+            logger.warning(f"Registration for session {session_id} not found for user {request.user.username}")
+            messages.error(request, 'Реєстрація на цю сесію не знайдена.')
+            return redirect('client_trainings')
+        try:
+            with transaction.atomic():
+                registration.delete()
+                logger.info(f"User {request.user.username} cancelled registration for session {session_id}")
+                messages.success(request, f'Реєстрацію на сесію {session.session_date.strftime("%d.%m.%Y")} {session.start_time.strftime("%H:%M")} скасовано!')
+                return redirect('client_trainings')
+        except Exception as e:
+            logger.error(f"Error cancelling registration for user {request.user.username} for session {session_id}: {str(e)}")
+            messages.error(request, 'Сталася помилка при скасуванні реєстрації.')
+            return redirect('client_trainings')
+    except Exception as e:
+        logger.error(f"Error accessing cancel_registration for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('client_trainings')
+
+
+
+### client_progress ###
+@login_required
+@permission_required('auth_app.view_client_progress', raise_exception=True)
+def client_progress(request):
+    try:
+        client = Client.objects.get(user_credential=request.user)
+        progress_records = ClientProgress.objects.filter(
+            user=client
+        ).select_related('session', 'session__training_type').order_by('-session__session_date')
+        logger.info(f"Client {request.user.username} viewed their progress records (count: {progress_records.count()})")
+        return render(request, 'client_progress/client_progress_list.html', {
+            'progress_records': progress_records,
+            'client': client
+        })
+    except Client.DoesNotExist:
+        logger.warning(f"User {request.user.username} has no client profile")
+        messages.error(request, 'Профіль клієнта не знайдено. Зверніться до адміністратора.')
+        return redirect('home')
+    except Exception as e:
+        logger.error(f"Error accessing client_progress for user {request.user.username}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('home')
+
+@login_required
+@permission_required('auth_app.add_client_progress', raise_exception=True)
+def add_client_progress(request, session_id, client_id):
+    try:
+        trainer = Trainers.objects.get(user_credential=request.user)
+        try:
+            session = TrainingSessions.objects.get(session_id=session_id, trainer=trainer, status='завершено')
+            client = Client.objects.get(user_id=client_id)
+            # Проверяем, что клиент зарегистрирован на сессию
+            ClientTrainingRegistration.objects.get(user=client, session=session)
+        except TrainingSessions.DoesNotExist:
+            logger.warning(f"Session {session_id} not found, not completed, or not owned by trainer {request.user.username}")
+            messages.error(request, 'Сесію не знайдено, вона не завершена або не належить вам.')
+            return redirect('view_session_registrations', session_id=session_id)
+        except Client.DoesNotExist:
+            logger.warning(f"Client {client_id} not found for session {session_id}")
+            messages.error(request, 'Клієнта не знайдено.')
+            return redirect('view_session_registrations', session_id=session_id)
+        except ClientTrainingRegistration.DoesNotExist:
+            logger.warning(f"Client {client_id} not registered for session {session_id}")
+            messages.error(request, 'Клієнт не зареєстрований на цю сесію.')
+            return redirect('view_session_registrations', session_id=session_id)
+
+        # Проверяем, не существует ли уже прогресс
+        if ClientProgress.objects.filter(user=client, session=session).exists():
+            logger.warning(f"Progress already exists for client {client_id} in session {session_id}")
+            messages.error(request, 'Відгук про прогрес для цього клієнта вже існує.')
+            return redirect('view_session_registrations', session_id=session_id)
+
+        if request.method == 'POST':
+            form = ClientProgressForm(request.POST)
+            if form.is_valid():
+                try:
+                    with transaction.atomic():
+                        progress = form.save(commit=False)
+                        progress.user = client
+                        progress.session = session
+                        progress.save()
+                        logger.info(f"Trainer {request.user.username} added progress for client {client_id} in session {session_id}")
+                        messages.success(request, f'Відгук про прогрес для {client.first_name} {client.last_name} додано!')
+                        return redirect('view_session_registrations', session_id=session_id)
+                except Exception as e:
+                    logger.error(f"Error saving progress for client {client_id} in session {session_id}: {str(e)}")
+                    messages.error(request, 'Сталася помилка при збереженні відгуку.')
+            else:
+                messages.error(request, 'Будь ласка, заповніть усі поля коректно.')
+        else:
+            form = ClientProgressForm()
+
+        return render(request, 'client_progress/add_client_progress.html', {
+            'form': form,
+            'session': session,
+            'client': client,
+            'trainer': trainer
+        })
+    except Trainers.DoesNotExist:
+        logger.warning(f"User {request.user.username} has no trainer profile")
+        messages.error(request, 'Профіль тренера не знайдено. Зверніться до адміністратора.')
+        return redirect('training_sessions')
+    except Exception as e:
+        logger.error(f"Error accessing add_client_progress for session {session_id}, client {client_id}: {str(e)}")
+        messages.error(request, 'Сталася помилка при завантаженні сторінки.')
+        return redirect('view_session_registrations', session_id=session_id)
