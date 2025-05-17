@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@7goa-k7ril2_!7jfpvm7$&1@z$^@2=%#0p!2e0du9&k*x@7vt'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-default-secret") #'django-insecure-@7goa-k7ril2_!7jfpvm7$&1@z$^@2=%#0p!2e0du9&k*x@7vt'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -80,14 +80,25 @@ WSGI_APPLICATION = 'sportmanagment.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'sport_complexes',
+#         'USER': 'postgres',
+#         'PASSWORD': 'rirmakkirill890',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sport_complexes',
-        'USER': 'postgres',
-        'PASSWORD': 'rirmakkirill890',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'sport_complexes'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'rirmakkirill890'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
